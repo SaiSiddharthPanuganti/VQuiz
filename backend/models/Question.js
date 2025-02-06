@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const Quiz = require('./Quiz');
 
 const Question = sequelize.define('Question', {
   id: {
@@ -8,33 +7,30 @@ const Question = sequelize.define('Question', {
     primaryKey: true,
     autoIncrement: true
   },
+  quizId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Quizzes',
+      key: 'id'
+    }
+  },
   question: {
     type: DataTypes.TEXT,
     allowNull: false
   },
   options: {
-    type: DataTypes.TEXT,
-    get() {
-      return JSON.parse(this.getDataValue('options'));
-    },
-    set(value) {
-      this.setDataValue('options', JSON.stringify(value));
-    }
+    type: DataTypes.JSON,
+    allowNull: false
   },
   correctAnswer: {
     type: DataTypes.STRING,
     allowNull: false
   },
   explanation: {
-    type: DataTypes.TEXT
+    type: DataTypes.TEXT,
+    allowNull: true
   }
-});
-
-// Define the association with explicit foreign key
-Question.belongsTo(Quiz, {
-  foreignKey: 'quizId',
-  onDelete: 'CASCADE',
-  onUpdate: 'CASCADE'
 });
 
 module.exports = Question; 

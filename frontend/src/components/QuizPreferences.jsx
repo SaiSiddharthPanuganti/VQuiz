@@ -1,113 +1,87 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Typography,
-  Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Alert,
+  TextField,
+  Box,
+  Typography,
+  FormHelperText,
+  Paper,
 } from '@mui/material';
-import { Settings } from '@mui/icons-material';
-import { motion } from 'framer-motion';
-import { PageContainer, GlassPaper, FormContainer } from '../styles/StyledComponents';
+import { QuizOutlined } from '@mui/icons-material';
 
-function QuizPreferences({ onSubmit, onBack }) {
-  const [preferences, setPreferences] = useState({
-    questionType: 'multiple-choice',
-    numberOfQuestions: 5,
-    difficulty: 'medium'
-  });
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    try {
-      onSubmit(preferences);
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
+function QuizPreferences({ preferences, setPreferences, error }) {
   return (
-    <PageContainer>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '400px' }}
-      >
-        <GlassPaper>
-          <Settings sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
-          <Typography variant="h4" gutterBottom>
-            Quiz Preferences
-          </Typography>
+    <Paper
+      elevation={3}
+      sx={{
+        p: 4,
+        bgcolor: 'rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: 2,
+        maxWidth: 500,
+        mx: 'auto',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
+        <QuizOutlined sx={{ fontSize: 32, color: 'primary.main' }} />
+        <Typography variant="h4">Generate Quiz</Typography>
+      </Box>
 
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+      <TextField
+        fullWidth
+        label="YouTube Video URL"
+        value={preferences.videoUrl}
+        onChange={(e) => setPreferences({ ...preferences, videoUrl: e.target.value })}
+        placeholder="https://www.youtube.com/watch?v=..."
+        error={!!error}
+        helperText={error || "Enter a valid YouTube video URL"}
+        sx={{ mb: 3 }}
+      />
 
-          <FormContainer component="form" onSubmit={handleSubmit}>
-            <FormControl fullWidth>
-              <InputLabel>Question Type</InputLabel>
-              <Select
-                value={preferences.questionType}
-                label="Question Type"
-                onChange={(e) => setPreferences({...preferences, questionType: e.target.value})}
-              >
-                <MenuItem value="multiple-choice">Multiple Choice</MenuItem>
-                <MenuItem value="true-false">True/False</MenuItem>
-              </Select>
-            </FormControl>
+      <FormControl fullWidth sx={{ mb: 3 }}>
+        <InputLabel>Question Type</InputLabel>
+        <Select
+          value={preferences.quizType}
+          label="Question Type"
+          onChange={(e) => setPreferences({ ...preferences, quizType: e.target.value })}
+        >
+          <MenuItem value="mcq">Multiple Choice Questions</MenuItem>
+          <MenuItem value="true_false">True/False</MenuItem>
+          <MenuItem value="fill_blanks">Fill in the Blanks</MenuItem>
+        </Select>
+        <FormHelperText>Select the type of questions you want</FormHelperText>
+      </FormControl>
 
-            <FormControl fullWidth>
-              <InputLabel>Number of Questions</InputLabel>
-              <Select
-                value={preferences.numberOfQuestions}
-                label="Number of Questions"
-                onChange={(e) => setPreferences({...preferences, numberOfQuestions: e.target.value})}
-              >
-                {[5, 10, 15, 20].map(num => (
-                  <MenuItem key={num} value={num}>{num}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+      <FormControl fullWidth sx={{ mb: 3 }}>
+        <InputLabel>Number of Questions</InputLabel>
+        <Select
+          value={preferences.numberOfQuestions}
+          label="Number of Questions"
+          onChange={(e) => setPreferences({ ...preferences, numberOfQuestions: e.target.value })}
+        >
+          <MenuItem value={5}>5 Questions</MenuItem>
+          <MenuItem value={10}>10 Questions</MenuItem>
+          <MenuItem value={15}>15 Questions</MenuItem>
+          <MenuItem value={20}>20 Questions</MenuItem>
+        </Select>
+      </FormControl>
 
-            <FormControl fullWidth>
-              <InputLabel>Difficulty</InputLabel>
-              <Select
-                value={preferences.difficulty}
-                label="Difficulty"
-                onChange={(e) => setPreferences({...preferences, difficulty: e.target.value})}
-              >
-                <MenuItem value="easy">Easy</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="hard">Hard</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{ mt: 2 }}
-            >
-              Generate Quiz
-            </Button>
-            
-            <Button
-              onClick={onBack}
-              variant="outlined"
-              fullWidth
-            >
-              Back
-            </Button>
-          </FormContainer>
-        </GlassPaper>
-      </motion.div>
-    </PageContainer>
+      <FormControl fullWidth sx={{ mb: 3 }}>
+        <InputLabel>Difficulty Level</InputLabel>
+        <Select
+          value={preferences.difficulty}
+          label="Difficulty Level"
+          onChange={(e) => setPreferences({ ...preferences, difficulty: e.target.value })}
+        >
+          <MenuItem value="easy">Easy</MenuItem>
+          <MenuItem value="medium">Medium</MenuItem>
+          <MenuItem value="hard">Hard</MenuItem>
+        </Select>
+      </FormControl>
+    </Paper>
   );
 }
 

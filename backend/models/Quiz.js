@@ -25,7 +25,8 @@ const Quiz = sequelize.define('Quiz', {
   },
   score: {
     type: DataTypes.FLOAT,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 0
   },
   totalQuestions: {
     type: DataTypes.INTEGER,
@@ -33,15 +34,17 @@ const Quiz = sequelize.define('Quiz', {
   },
   correctAnswers: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 0
   },
   difficulty: {
     type: DataTypes.ENUM('easy', 'medium', 'hard'),
     allowNull: false
   },
   timeSpent: {
-    type: DataTypes.INTEGER, // in seconds
-    allowNull: false
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
   },
   questions: {
     type: DataTypes.JSON,
@@ -49,7 +52,4 @@ const Quiz = sequelize.define('Quiz', {
   }
 });
 
-// The hasMany association will be defined after Question is imported
-// to avoid circular dependencies
-
-module.exports = Quiz; 
+module.exports = Quiz;

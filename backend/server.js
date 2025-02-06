@@ -1,32 +1,44 @@
 const express = require('express');
 const cors = require('cors');
-const sequelize = require('./config/database');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
+
 const authRoutes = require('./routes/auth');
-const apiRoutes = require('./routes/api');
-const auth = require('./middleware/auth');
-require('./models/index'); // Import the models with associations
+const quizRoutes = require('./routes/quiz');
+const sequelize = require('./config/database');
+const models = require('./models'); // Import models from index.js
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
+app.use(helmet());
+app.use(morgan('dev'));
 app.use(express.json());
 
-// Public routes
+// Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/quiz', quizRoutes);
 
-// Protected routes
-app.use('/api', auth, apiRoutes);
-
-// Database sync and server start
-sequelize.sync({ force: true })
-  .then(() => {
-    console.log('Database connected and tables created');
+// Start server
+async function startServer() {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connected successfully.');
+    
+    // Sync all models
+    await sequelize.sync({ alter: true });
+    console.log('Database synced successfully.');
+    
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-  })
-  .catch(err => {
-    console.error('Database connection failed:', err);
-  });
+  } catch (error) {
+    console.error('Unable to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

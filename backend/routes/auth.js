@@ -7,7 +7,8 @@ const { Sequelize } = require('sequelize');
 
 router.post('/signup', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, name, email, password } = req.body;
+    console.log('Received signup request:', { username, name, email }); // Debug log
     
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -23,13 +24,23 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    const user = await User.create({ username, email, password });
+    const user = await User.create({
+      username,
+      name,
+      email,
+      password
+    });
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET);
     
     res.status(201).json({
-      success: true,
       token,
-      username: user.username
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email
+      }
     });
   } catch (error) {
     console.error('Signup error:', error);

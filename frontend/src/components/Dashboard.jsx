@@ -1,184 +1,89 @@
 import React, { useState } from 'react';
-import {
-  Typography,
-  Button,
-  IconButton,
-  Avatar,
-  Menu,
-  MenuItem,
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-} from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { PageContainer, GlassPaper, FormContainer } from '../styles/StyledComponents';
-import { YouTube, Settings } from '@mui/icons-material';
-import { useApp } from '../context/AppContext';
-import api from '../services/api';
+import { Container, Alert, Snackbar } from '@mui/material';
+import QuizForm from './QuizForm';
+import QuizDisplay from './QuizDisplay';
+import { useProgress } from '../context/ProgressContext';
 
 function Dashboard() {
-  const navigate = useNavigate();
-  const { showLoading, hideLoading, showNotification } = useApp();
-  const username = localStorage.getItem('username');
-  const [anchorEl, setAnchorEl] = useState(null);
-  
-  const [quizData, setQuizData] = useState({
-    videoUrl: '',
-    numberOfQuestions: 5,
-    difficulty: 'medium'
-  });
+  const [quiz, setQuiz] = useState(null);
+  const [error, setError] = useState('');
+  const { startProgress, stopProgress } = useProgress();
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    navigate('/login');
-  };
-
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleQuizGenerate = async (youtubeLink, preferences) => {
     try {
-      showLoading('Generating quiz...');
-      const response = await api.generateQuiz(quizData.videoUrl, {
-        numberOfQuestions: quizData.numberOfQuestions,
-        difficulty: quizData.difficulty
+      setError('');
+      startProgress('Generating quiz from video...');
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/quiz/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          videoUrl: youtubeLink,
+          ...preferences
+        })
       });
-      // Handle the generated quiz
-      showNotification('Quiz generated successfully!', 'success');
-      // Navigate to quiz display or handle the next step
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate quiz');
+      }
+
+      const data = await response.json();
+      console.log('Quiz data:', data);
+
+      if (!data.success || !data.quiz) {
+        throw new Error('Invalid quiz data received');
+      }
+
+      setQuiz(data.quiz);
     } catch (error) {
-      showNotification(error.message, 'error');
+      console.error('Quiz generation error:', error);
+      setError(error.message || 'Failed to generate quiz');
+      setQuiz(null);
     } finally {
-      hideLoading();
+      stopProgress();
     }
   };
 
+  const handleReset = () => {
+    setQuiz(null);
+    setError('');
+  };
+
   return (
-    <PageContainer>
-      {/* User Menu */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          padding: 2,
-          zIndex: 1000
-        }}
+    <Container 
+      maxWidth={false} 
+      disableGutters 
+      sx={{ 
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'background.default',
+        position: 'relative'
+      }}
+    >
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <IconButton onClick={handleMenu}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            {username?.[0]?.toUpperCase()}
-          </Avatar>
-        </IconButton>
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
-          }}
-          transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
-          }}
-        >
-          <MenuItem disabled>
-            <Typography variant="body2">
-              Signed in as {username}
-            </Typography>
-          </MenuItem>
-          <MenuItem onClick={handleLogout}>Logout</MenuItem>
-        </Menu>
-      </Box>
+        <Alert severity="error" onClose={() => setError('')}>
+          {error}
+        </Alert>
+      </Snackbar>
 
-      {/* Main Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '400px' }}
-      >
-        <GlassPaper>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              bgcolor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 2
-            }}
-          >
-            <YouTube />
-          </Box>
-
-          <Typography variant="h4" gutterBottom>
-            Generate Quiz
-          </Typography>
-
-          <FormContainer component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="YouTube Video URL"
-              required
-              value={quizData.videoUrl}
-              onChange={(e) => setQuizData({ ...quizData, videoUrl: e.target.value })}
-              placeholder="https://www.youtube.com/watch?v=..."
-              helperText="Enter a valid YouTube video URL"
-            />
-
-            <FormControl fullWidth>
-              <InputLabel>Number of Questions</InputLabel>
-              <Select
-                value={quizData.numberOfQuestions}
-                label="Number of Questions"
-                onChange={(e) => setQuizData({ ...quizData, numberOfQuestions: e.target.value })}
-              >
-                <MenuItem value={5}>5 Questions</MenuItem>
-                <MenuItem value={10}>10 Questions</MenuItem>
-                <MenuItem value={15}>15 Questions</MenuItem>
-                <MenuItem value={20}>20 Questions</MenuItem>
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>Difficulty Level</InputLabel>
-              <Select
-                value={quizData.difficulty}
-                label="Difficulty Level"
-                onChange={(e) => setQuizData({ ...quizData, difficulty: e.target.value })}
-              >
-                <MenuItem value="easy">Easy</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="hard">Hard</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{ mt: 2 }}
-            >
-              Generate Quiz
-            </Button>
-          </FormContainer>
-        </GlassPaper>
-      </motion.div>
-    </PageContainer>
+      {!quiz ? (
+        <QuizForm onQuizGenerate={handleQuizGenerate} />
+      ) : (
+        <QuizDisplay quiz={quiz} onReset={handleReset} />
+      )}
+    </Container>
   );
 }
 

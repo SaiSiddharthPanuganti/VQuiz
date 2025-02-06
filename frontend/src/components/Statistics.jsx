@@ -5,13 +5,19 @@ import {
   Grid,
   Paper,
   CircularProgress,
+  Container,
+  Card,
+  CardContent,
+  Divider,
+  useTheme
 } from '@mui/material';
 import {
   Timeline,
+  Assessment,
+  EmojiEvents,
+  School,
   TrendingUp,
-  Grade,
-  AccessTime,
-  Quiz,
+  AccessTime
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { PageContainer, GlassPaper } from '../styles/StyledComponents';
@@ -39,31 +45,75 @@ ChartJS.register(
   Legend
 );
 
-const StatCard = ({ icon: Icon, title, value, color }) => (
-  <Paper
-    sx={{
-      p: 3,
-      height: '100%',
-      bgcolor: 'rgba(255, 255, 255, 0.05)',
-      backdropFilter: 'blur(10px)',
-      border: `1px solid ${color}22`,
-      transition: 'transform 0.2s',
-      '&:hover': {
-        transform: 'translateY(-5px)',
-      }
-    }}
-  >
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-      <Icon sx={{ color: color, fontSize: 32 }} />
-      <Typography variant="h6" color="text.secondary">
-        {title}
+function CircularProgressWithLabel({ value, label, icon: Icon }) {
+  const theme = useTheme();
+  
+  return (
+    <Box sx={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+        <CircularProgress
+          variant="determinate"
+          value={value}
+          size={80}
+          thickness={4}
+          sx={{
+            color: theme.palette.primary.main,
+            circle: {
+              strokeLinecap: 'round',
+            },
+          }}
+        />
+        <Box
+          sx={{
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            position: 'absolute',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon color="primary" />
+        </Box>
+      </Box>
+      <Typography variant="h6" component="div" sx={{ mt: 1 }}>
+        {value}%
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {label}
       </Typography>
     </Box>
-    <Typography variant="h4" color={color}>
-      {value}
-    </Typography>
-  </Paper>
-);
+  );
+}
+
+function StatCard({ title, value, icon: Icon, description }) {
+  return (
+    <Card
+      component={motion.div}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      sx={{ height: '100%' }}
+    >
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Icon color="primary" sx={{ mr: 1 }} />
+          <Typography variant="h6" component="div">
+            {title}
+          </Typography>
+        </Box>
+        <Typography variant="h4" component="div" sx={{ mb: 1 }}>
+          {value}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {description}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
 
 function Statistics() {
   const [stats, setStats] = useState(null);
@@ -143,65 +193,93 @@ function Statistics() {
   }
 
   return (
-    <PageContainer>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '1200px' }}
       >
-        <GlassPaper>
-          <Typography variant="h4" gutterBottom sx={{ mb: 4 }}>
-            Your Statistics
-          </Typography>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
+          Your Statistics
+        </Typography>
 
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                icon={Quiz}
-                title="Total Quizzes"
-                value={stats?.totalQuizzes}
-                color="#2196f3"
+        <Grid container spacing={3}>
+          {/* Progress Overview */}
+          <Grid item xs={12}>
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
+                mb: 3,
+                display: 'flex',
+                justifyContent: 'space-around',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 3
+              }}
+            >
+              <CircularProgressWithLabel
+                value={stats.averageScore}
+                label="Average Score"
+                icon={Assessment}
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                icon={Grade}
-                title="Average Score"
-                value={`${stats?.averageScore}%`}
-                color="#4caf50"
+              <CircularProgressWithLabel
+                value={75}
+                label="Completion Rate"
+                icon={Timeline}
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
+              <CircularProgressWithLabel
+                value={90}
+                label="Accuracy"
                 icon={TrendingUp}
-                title="Best Score"
-                value={`${stats?.bestScore}%`}
-                color="#ff9800"
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                icon={AccessTime}
-                title="Total Time"
-                value={`${stats?.totalTime}m`}
-                color="#f50057"
-              />
-            </Grid>
+            </Paper>
           </Grid>
 
-          <Paper
-            sx={{
-              p: 3,
-              bgcolor: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(10px)',
-            }}
-          >
-            <Line data={chartData} options={chartOptions} />
-          </Paper>
-        </GlassPaper>
+          {/* Detailed Stats */}
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard
+              title="Total Quizzes"
+              value={stats.totalQuizzes}
+              icon={School}
+              description="Quizzes completed overall"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard
+              title="Current Streak"
+              value={`${stats.streak} days`}
+              icon={EmojiEvents}
+              description="Keep up the momentum!"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <StatCard
+              title="Study Time"
+              value={stats.totalTime}
+              icon={AccessTime}
+              description="Total time spent learning"
+            />
+          </Grid>
+
+          {/* Recent Activity */}
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Recent Activity
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              {/* Add your recent activity timeline/list here */}
+              <Typography color="text.secondary">
+                Your recent quiz activities will appear here
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
       </motion.div>
-    </PageContainer>
+    </Container>
   );
 }
 

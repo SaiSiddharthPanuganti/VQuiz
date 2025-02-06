@@ -1,88 +1,104 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box } from '@mui/material';
-import { theme } from './theme';
-import { AppProvider } from './context/AppContext';
-import ErrorBoundary from './components/ErrorBoundary';
-import LoadingOverlay from './components/LoadingOverlay';
-import Notification from './components/Notification';
-import Navigation from './components/Navigation';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Box, CssBaseline } from '@mui/material';
+import { ThemeProvider } from '@mui/material/styles';
+import darkTheme from './theme/darkTheme';
+import { AuthProvider } from './context/AuthContext';
+import { ProgressProvider } from './context/ProgressContext';
+import { useAuth } from './context/AuthContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
-import QuizHistory from './components/QuizHistory';
+import Navigation from './components/Navigation';
 import Statistics from './components/Statistics';
-import Leaderboard from './components/Leaderboard';
-import QuizDisplay from './components/QuizDisplay';
-import Results from './components/Results';
-import ProtectedRoute from './components/ProtectedRoute';
-import { useApp } from './context/AppContext';
+
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
+// Public Route component - redirects to dashboard if already authenticated
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
 function AppContent() {
-  const { notification, hideNotification, loading } = useApp();
-  const isAuthenticated = !!localStorage.getItem('token');
+  const { isAuthenticated } = useAuth();
+  const [drawerOpen, setDrawerOpen] = React.useState(true);
+
+  const handleDrawerToggle = () => {
+    setDrawerOpen(!drawerOpen);
+  };
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      {loading.isLoading && <LoadingOverlay message={loading.message} />}
-      <Notification
-        open={notification.open}
-        message={notification.message}
-        severity={notification.severity}
-        onClose={hideNotification}
-      />
-      
-      {isAuthenticated && <Navigation />}
-      
+    <Box 
+      sx={{ 
+        display: 'flex',
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        color: 'text.primary'
+      }}
+    >
+      <CssBaseline />
+      {isAuthenticated && (
+        <Navigation open={drawerOpen} handleDrawerToggle={handleDrawerToggle} />
+      )}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          minHeight: '100vh',
           p: 3,
-          width: { sm: isAuthenticated ? `calc(100% - 240px)` : '100%' },
-          ml: { sm: isAuthenticated ? '240px' : 0 },
-          mt: isAuthenticated ? '64px' : 0,
+          width: '100%',
+          minHeight: '100vh',
+          bgcolor: 'background.default'
         }}
       >
         <Routes>
-          <Route path="/login" element={
-            isAuthenticated ? <Navigate to="/dashboard" /> : <Login />
-          } />
-          <Route path="/signup" element={
-            isAuthenticated ? <Navigate to="/dashboard" /> : <Signup />
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/history" element={
-            <ProtectedRoute>
-              <QuizHistory />
-            </ProtectedRoute>
-          } />
-          <Route path="/statistics" element={
-            <ProtectedRoute>
-              <Statistics />
-            </ProtectedRoute>
-          } />
-          <Route path="/leaderboard" element={
-            <ProtectedRoute>
-              <Leaderboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/quiz" element={
-            <ProtectedRoute>
-              <QuizDisplay />
-            </ProtectedRoute>
-          } />
-          <Route path="/results" element={
-            <ProtectedRoute>
-              <Results />
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute>
+                <Signup />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/statistics"
+            element={
+              <ProtectedRoute>
+                <Statistics />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
     </Box>
@@ -91,16 +107,16 @@ function AppContent() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ThemeProvider theme={theme}>
+    <Router>
+      <ThemeProvider theme={darkTheme}>
         <CssBaseline />
-        <AppProvider>
-          <BrowserRouter>
+        <AuthProvider>
+          <ProgressProvider>
             <AppContent />
-          </BrowserRouter>
-        </AppProvider>
+          </ProgressProvider>
+        </AuthProvider>
       </ThemeProvider>
-    </ErrorBoundary>
+    </Router>
   );
 }
 

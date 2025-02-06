@@ -1,113 +1,239 @@
 import React from 'react';
 import {
   Typography,
-  Button,
   Box,
+  Paper,
+  Button,
   List,
   ListItem,
   ListItemText,
   Chip,
   Divider,
+  CircularProgress,
 } from '@mui/material';
-import { EmojiEvents, CheckCircle, Cancel } from '@mui/icons-material';
+import {
+  Check,
+  Close,
+  EmojiEvents,
+  Refresh,
+  Home,
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { PageContainer, GlassPaper, FormContainer } from '../styles/StyledComponents';
+import { useNavigate } from 'react-router-dom';
+import { PageContainer, GlassPaper } from '../styles/StyledComponents';
 
-function Results({ results, onRetry }) {
-  const score = (results.correctAnswers / results.totalQuestions) * 100;
-  
+function Results({ quizResults }) {
+  const navigate = useNavigate();
+  const { score, questions, answers, quizType } = quizResults;
+
+  const getScoreColor = (score) => {
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
+    return 'error';
+  };
+
+  const renderAnswer = (question, userAnswer, index) => {
+    switch (quizType) {
+      case 'mcq':
+        return (
+          <ListItem
+            sx={{
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              bgcolor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 1,
+              mb: 2,
+            }}
+          >
+            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+                {index + 1}. {question.question}
+              </Typography>
+              {userAnswer === question.correctAnswer ? (
+                <Check color="success" />
+              ) : (
+                <Close color="error" />
+              )}
+            </Box>
+            <Box sx={{ width: '100%' }}>
+              <Typography color="text.secondary">Your answer: </Typography>
+              <Chip
+                label={userAnswer}
+                color={userAnswer === question.correctAnswer ? 'success' : 'error'}
+                variant="outlined"
+                size="small"
+                sx={{ mt: 1 }}
+              />
+              {userAnswer !== question.correctAnswer && (
+                <>
+                  <Typography color="text.secondary" sx={{ mt: 1 }}>
+                    Correct answer:
+                  </Typography>
+                  <Chip
+                    label={question.correctAnswer}
+                    color="success"
+                    variant="outlined"
+                    size="small"
+                    sx={{ mt: 1 }}
+                  />
+                </>
+              )}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1, fontStyle: 'italic' }}
+              >
+                {question.explanation}
+              </Typography>
+            </Box>
+          </ListItem>
+        );
+
+      case 'true_false':
+        return (
+          <ListItem
+            sx={{
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              bgcolor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 1,
+              mb: 2,
+            }}
+          >
+            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+                {index + 1}. {question.question}
+              </Typography>
+              {userAnswer === question.correctAnswer ? (
+                <Check color="success" />
+              ) : (
+                <Close color="error" />
+              )}
+            </Box>
+            <Box>
+              <Typography color="text.secondary">
+                Your answer: {userAnswer ? 'True' : 'False'}
+              </Typography>
+              {userAnswer !== question.correctAnswer && (
+                <Typography color="text.secondary">
+                  Correct answer: {question.correctAnswer ? 'True' : 'False'}
+                </Typography>
+              )}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1, fontStyle: 'italic' }}
+              >
+                {question.explanation}
+              </Typography>
+            </Box>
+          </ListItem>
+        );
+
+      case 'fill_blanks':
+        return (
+          <ListItem
+            sx={{
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              bgcolor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 1,
+              mb: 2,
+            }}
+          >
+            <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+                {index + 1}. {question.question}
+              </Typography>
+              {userAnswer.toLowerCase() === question.correctAnswer.toLowerCase() ? (
+                <Check color="success" />
+              ) : (
+                <Close color="error" />
+              )}
+            </Box>
+            <Box>
+              <Typography color="text.secondary">Your answer: {userAnswer}</Typography>
+              {userAnswer.toLowerCase() !== question.correctAnswer.toLowerCase() && (
+                <Typography color="text.secondary">
+                  Correct answer: {question.correctAnswer}
+                </Typography>
+              )}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1, fontStyle: 'italic' }}
+              >
+                {question.explanation}
+              </Typography>
+            </Box>
+          </ListItem>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <PageContainer>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '600px' }}
+        style={{ width: '100%', maxWidth: '800px' }}
       >
         <GlassPaper>
-          <EmojiEvents sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-          <Typography variant="h4" gutterBottom>
-            Quiz Results
-          </Typography>
-
-          <Box sx={{ width: '100%', mb: 4, textAlign: 'center' }}>
-            <Typography variant="h2" color="primary" gutterBottom>
-              {Math.round(score)}%
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              {results.correctAnswers} out of {results.totalQuestions} correct
-            </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              mb: 4
+            }}
+          >
+            <EmojiEvents
+              sx={{
+                fontSize: 48,
+                color: getScoreColor(score)
+              }}
+            />
+            <Box>
+              <Typography variant="h4" gutterBottom>
+                Quiz Results
+              </Typography>
+              <Typography variant="h6" color={getScoreColor(score)}>
+                Your Score: {score}%
+              </Typography>
+            </Box>
           </Box>
 
-          <FormContainer>
-            <List sx={{ width: '100%' }}>
-              {results.questions.map((question, index) => (
-                <React.Fragment key={index}>
-                  <ListItem
-                    alignItems="flex-start"
-                    sx={{
-                      flexDirection: 'column',
-                      gap: 1,
-                      bgcolor: 'rgba(33, 150, 243, 0.1)',
-                      borderRadius: 2,
-                      mb: 2,
-                      p: 2,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      {question.isCorrect ? (
-                        <CheckCircle color="success" />
-                      ) : (
-                        <Cancel color="error" />
-                      )}
-                      <ListItemText
-                        primary={`Question ${index + 1}`}
-                        secondary={question.question}
-                      />
-                    </Box>
+          <List>
+            {questions.map((question, index) => (
+              <React.Fragment key={index}>
+                {renderAnswer(question, answers[index], index)}
+                {index < questions.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </List>
 
-                    <Box sx={{ width: '100%', pl: 4 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Your answer: 
-                        <Chip
-                          label={question.userAnswer}
-                          size="small"
-                          color={question.isCorrect ? "success" : "error"}
-                          sx={{ ml: 1 }}
-                        />
-                      </Typography>
-                      {!question.isCorrect && (
-                        <Typography variant="body2" color="success.main">
-                          Correct answer: {question.correctAnswer}
-                        </Typography>
-                      )}
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {question.explanation}
-                      </Typography>
-                    </Box>
-                  </ListItem>
-                  {index < results.questions.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-
-            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-              <Button
-                variant="contained"
-                onClick={onRetry}
-                fullWidth
-              >
-                Try Another Quiz
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => window.print()}
-                fullWidth
-              >
-                Save Results
-              </Button>
-            </Box>
-          </FormContainer>
+          <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+            <Button
+              variant="contained"
+              startIcon={<Home />}
+              onClick={() => navigate('/dashboard')}
+              fullWidth
+            >
+              Back to Dashboard
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={() => navigate('/quiz')}
+              fullWidth
+            >
+              Take Another Quiz
+            </Button>
+          </Box>
         </GlassPaper>
       </motion.div>
     </PageContainer>

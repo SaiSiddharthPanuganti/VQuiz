@@ -1,212 +1,277 @@
 import React, { useState } from 'react';
 import {
+  Container,
+  Paper,
   Typography,
-  Button,
   RadioGroup,
   FormControlLabel,
   Radio,
-  Alert,
+  Button,
   Box,
-  LinearProgress,
-  Paper,
-  Stepper,
-  Step,
-  StepLabel,
+  Divider,
+  Alert,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
-import { QuizOutlined, Timer } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { PageContainer, GlassPaper } from '../styles/StyledComponents';
+import { motion } from 'framer-motion';
 
-function QuizDisplay({ questions, onSubmit, onBack }) {
+function QuizDisplay({ quiz, onReset }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [error, setError] = useState('');
-  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds per question
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [score, setScore] = useState(null);
+  const [incorrectAnswers, setIncorrectAnswers] = useState([]);
 
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Auto-submit when time runs out
-          if (currentQuestion < questions.length - 1) {
-            setCurrentQuestion(prev => prev + 1);
-            return 30;
-          }
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [currentQuestion, questions.length]);
-
-  const handleAnswer = (answer) => {
-    setAnswers({
-      ...answers,
+  const handleAnswerSelect = (answer) => {
+    setSelectedAnswers({
+      ...selectedAnswers,
       [currentQuestion]: answer
     });
+    setShowExplanation(false);
+  };
+
+  const handleNext = () => {
+    setCurrentQuestion(prev => prev + 1);
+    setShowExplanation(false);
+  };
+
+  const handlePrevious = () => {
+    setCurrentQuestion(prev => prev - 1);
+    setShowExplanation(false);
   };
 
   const handleSubmit = () => {
-    if (Object.keys(answers).length < questions.length) {
-      setError('Please answer all questions');
-      return;
-    }
-    onSubmit(answers);
+    const totalQuestions = quiz.questions.length;
+    let correctCount = 0;
+    const wrongAnswers = [];
+
+    quiz.questions.forEach((question, index) => {
+      const userAnswer = selectedAnswers[index];
+      if (userAnswer === question.correctAnswer) {
+        correctCount++;
+      } else {
+        wrongAnswers.push({
+          questionNumber: index + 1,
+          question: question.question,
+          userAnswer,
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation
+        });
+      }
+    });
+
+    setScore(`${correctCount}/${totalQuestions}`);
+    setIncorrectAnswers(wrongAnswers);
+    setIsSubmitted(true);
   };
 
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const question = quiz.questions[currentQuestion];
 
   return (
-    <PageContainer>
+    <Box 
+      sx={{ 
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'background.default',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        padding: '20px'
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '800px' }}
+        style={{ 
+          width: '100%',
+          maxWidth: '800px',
+          margin: '0 auto'
+        }}
       >
-        <GlassPaper>
-          <Box sx={{ width: '100%', mb: 4 }}>
-            <Stepper activeStep={currentQuestion} alternativeLabel>
-              {questions.map((_, index) => (
-                <Step key={index}>
-                  <StepLabel></StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-          </Box>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 4, 
+            borderRadius: 2,
+            backgroundColor: 'background.paper',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}
+        >
+          {/* Quiz Header */}
+          <Typography variant="h4" gutterBottom>
+            {quiz.title}
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+            Question {currentQuestion + 1} of {quiz.questions.length}
+          </Typography>
+          <Divider sx={{ my: 2 }} />
 
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              mb: 3
-            }}
-          >
-            <Typography variant="h4">
-              Question {currentQuestion + 1}/{questions.length}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Timer color={timeLeft <= 10 ? 'error' : 'primary'} />
-              <Typography
-                variant="h6"
-                color={timeLeft <= 10 ? 'error' : 'primary'}
+          {/* Score Display */}
+          {isSubmitted && (
+            <>
+              <Alert 
+                severity="info" 
+                sx={{ mb: 3 }}
               >
-                {timeLeft}s
-              </Typography>
-            </Box>
-          </Box>
+                <Typography variant="h6">
+                  Final Score: {score}
+                </Typography>
+                {incorrectAnswers.length > 0 ? (
+                  <Typography>
+                    You got {quiz.questions.length - incorrectAnswers.length} questions correct and {incorrectAnswers.length} questions wrong.
+                  </Typography>
+                ) : (
+                  <Typography>
+                    Perfect score! You got all questions correct!
+                  </Typography>
+                )}
+              </Alert>
 
-          <LinearProgress 
-            variant="determinate" 
-            value={progress} 
-            sx={{ width: '100%', mb: 3 }}
-          />
-
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
+              {incorrectAnswers.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Review Incorrect Answers:
+                  </Typography>
+                  <List>
+                    {incorrectAnswers.map((wrong, index) => (
+                      <ListItem 
+                        key={index}
+                        sx={{ 
+                          flexDirection: 'column', 
+                          alignItems: 'flex-start',
+                          bgcolor: 'background.default',
+                          borderRadius: 1,
+                          mb: 2,
+                          p: 2
+                        }}
+                      >
+                        <Typography variant="subtitle1" color="error" gutterBottom>
+                          Question {wrong.questionNumber}: {wrong.question}
+                        </Typography>
+                        <Typography color="text.secondary">
+                          Your Answer: {wrong.userAnswer}
+                        </Typography>
+                        <Typography color="success.main">
+                          Correct Answer: {wrong.correctAnswer}
+                        </Typography>
+                        <Typography sx={{ mt: 1 }}>
+                          Explanation: {wrong.explanation}
+                        </Typography>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+            </>
           )}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentQuestion}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              style={{ width: '100%' }}
-            >
-              <Paper 
-                elevation={3}
-                sx={{ 
-                  p: 3, 
-                  mb: 3,
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(10px)'
+          {/* Question */}
+          <Typography variant="h6" gutterBottom>
+            {question.question}
+          </Typography>
+
+          {/* Options */}
+          <RadioGroup
+            value={selectedAnswers[currentQuestion] || ''}
+            onChange={(e) => handleAnswerSelect(e.target.value)}
+          >
+            {question.options.map((option, index) => (
+              <FormControlLabel
+                key={index}
+                value={option}
+                control={<Radio />}
+                label={option}
+                disabled={isSubmitted}
+                sx={{
+                  ...(isSubmitted && option === question.correctAnswer && {
+                    color: 'success.main',
+                  }),
+                  ...(isSubmitted && 
+                    selectedAnswers[currentQuestion] === option && 
+                    option !== question.correctAnswer && {
+                      color: 'error.main',
+                    }),
                 }}
-              >
-                <Typography variant="h6" gutterBottom>
-                  {questions[currentQuestion].question}
-                </Typography>
+              />
+            ))}
+          </RadioGroup>
 
-                <RadioGroup
-                  value={answers[currentQuestion] || ''}
-                  onChange={(e) => handleAnswer(e.target.value)}
-                >
-                  {questions[currentQuestion].options.map((option, index) => (
-                    <FormControlLabel
-                      key={index}
-                      value={option}
-                      control={
-                        <Radio 
-                          sx={{
-                            '&.Mui-checked': {
-                              color: 'primary.main'
-                            }
-                          }}
-                        />
-                      }
-                      label={option}
-                      sx={{
-                        mb: 1,
-                        p: 1,
-                        width: '100%',
-                        borderRadius: 1,
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          bgcolor: 'rgba(33, 150, 243, 0.1)'
-                        }
-                      }}
-                    />
-                  ))}
-                </RadioGroup>
-              </Paper>
-            </motion.div>
-          </AnimatePresence>
+          {/* Explanation */}
+          <Collapse in={showExplanation || isSubmitted}>
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Explanation:
+              </Typography>
+              {question.explanation}
+            </Alert>
+          </Collapse>
 
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+          {/* Navigation Buttons */}
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
             <Button
               variant="outlined"
+              onClick={handlePrevious}
               disabled={currentQuestion === 0}
-              onClick={() => {
-                setCurrentQuestion(prev => prev - 1);
-                setTimeLeft(30);
-              }}
-              fullWidth
             >
               Previous
             </Button>
-            
-            {currentQuestion < questions.length - 1 ? (
-              <Button
-                variant="contained"
-                onClick={() => {
-                  setCurrentQuestion(prev => prev + 1);
-                  setTimeLeft(30);
-                }}
-                fullWidth
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                fullWidth
-              >
-                Submit Quiz
-              </Button>
-            )}
+
+            <Box>
+              {!isSubmitted && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowExplanation(!showExplanation)}
+                  sx={{ mr: 2 }}
+                >
+                  {showExplanation ? 'Hide' : 'Show'} Explanation
+                </Button>
+              )}
+
+              {currentQuestion < quiz.questions.length - 1 ? (
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  disabled={!selectedAnswers[currentQuestion]}
+                >
+                  Next
+                </Button>
+              ) : (
+                !isSubmitted && (
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={Object.keys(selectedAnswers).length !== quiz.questions.length}
+                  >
+                    Submit Quiz
+                  </Button>
+                )
+              )}
+            </Box>
           </Box>
-        </GlassPaper>
+
+          {/* Reset Button */}
+          {isSubmitted && (
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={onReset}
+              >
+                Create New Quiz
+              </Button>
+            </Box>
+          )}
+        </Paper>
       </motion.div>
-    </PageContainer>
+    </Box>
   );
 }
 

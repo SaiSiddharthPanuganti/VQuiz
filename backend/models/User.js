@@ -13,10 +13,15 @@ const User = sequelize.define('User', {
     allowNull: false,
     unique: true,
     validate: {
-      len: {
-        args: [3, 30],
-        msg: 'Username must be between 3 and 30 characters'
-      }
+      notEmpty: true,
+      len: [3, 30]
+    }
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      notEmpty: true
     }
   },
   email: {
@@ -24,26 +29,24 @@ const User = sequelize.define('User', {
     allowNull: false,
     unique: true,
     validate: {
-      isEmail: {
-        msg: 'Please enter a valid email address'
-      }
+      isEmail: true
     }
   },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
-      len: {
-        args: [6, 100],
-        msg: 'Password must be at least 6 characters long'
-      }
+      notEmpty: true,
+      len: [6, 100]
     }
   }
 }, {
   hooks: {
     beforeCreate: async (user) => {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(user.password, salt);
+      if (user.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
     }
   }
 });

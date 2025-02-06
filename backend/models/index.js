@@ -1,16 +1,28 @@
 const Quiz = require('./Quiz');
 const Question = require('./Question');
-const Attempt = require('./Attempt');
+const User = require('./User');
 
-// Define associations with explicit foreign keys
-Quiz.hasMany(Question, { foreignKey: 'quizId' });
-Question.belongsTo(Quiz, { foreignKey: 'quizId' });
+// Define associations
+Quiz.hasMany(Question, {
+  foreignKey: 'quizId',
+  onDelete: 'CASCADE'
+});
 
-Quiz.hasMany(Attempt, { foreignKey: 'quizId' });
-Attempt.belongsTo(Quiz, { foreignKey: 'quizId' });
+Question.belongsTo(Quiz, {
+  foreignKey: 'quizId'
+});
+
+User.hasMany(Quiz, {
+  foreignKey: 'userId',
+  onDelete: 'CASCADE'
+});
+
+Quiz.belongsTo(User, {
+  foreignKey: 'userId'
+});
 
 module.exports = {
   Quiz,
   Question,
-  Attempt
+  User
 }; 

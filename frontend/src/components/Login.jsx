@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import {
-  Box,
+  Container,
+  Paper,
+  Typography,
   TextField,
   Button,
-  Typography,
-  Paper,
+  Box,
+  Link,
   Alert,
+  CircularProgress
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { PageContainer, GlassPaper, FormContainer } from '../styles/StyledComponents';
-import api from '../services/api';
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -21,105 +20,101 @@ function Login() {
     password: ''
   });
   const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const { showLoading, hideLoading } = useApp();
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
-      showLoading('Logging in...');
-      const response = await api.login(formData);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
-      navigate('/dashboard');
-    } catch (error) {
-      setError(error.message || 'Login failed');
+      await login(formData);
+    } catch (err) {
+      setError(err.message || 'Failed to login');
     } finally {
-      hideLoading();
+      setLoading(false);
     }
   };
 
   return (
-    <PageContainer>
+    <Container maxWidth="sm">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '400px' }}
       >
-        <GlassPaper>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              bgcolor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 2
-            }}
-          >
-            <LockOutlinedIcon />
-          </Box>
+        <Box
+          sx={{
+            marginTop: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+            <Typography component="h1" variant="h4" align="center" gutterBottom>
+              Welcome Back
+            </Typography>
+            
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-          <Typography variant="h4" gutterBottom>
-            Login
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <FormContainer component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-            />
-
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              sx={{ mt: 2 }}
-            >
-              Sign In
-            </Button>
-
-            <Button
-              component={RouterLink}
-              to="/signup"
-              variant="outlined"
-              fullWidth
-              sx={{
-                mt: 1,
-                textDecoration: 'none',
-                color: 'primary.main',
-                '&:hover': {
-                  color: 'primary.dark',
-                },
-              }}
-            >
-              Don't have an account? Sign Up
-            </Button>
-          </FormContainer>
-        </GlassPaper>
+            <form onSubmit={handleSubmit}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                autoFocus
+                value={formData.email}
+                onChange={handleChange}
+              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="password"
+                autoComplete="current-password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              </Button>
+              <Box sx={{ textAlign: 'center' }}>
+                <Link component={RouterLink} to="/signup" variant="body2">
+                  {"Don't have an account? Sign Up"}
+                </Link>
+              </Box>
+            </form>
+          </Paper>
+        </Box>
       </motion.div>
-    </PageContainer>
+    </Container>
   );
 }
 
