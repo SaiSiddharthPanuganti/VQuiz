@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { sequelize, User } = require('../models'); // Import from models/index.js
+const { Sequelize, Op } = require('sequelize');
+const { User } = require('../models');
 const auth = require('../middleware/auth');
 
 // Middleware to verify JWT token
@@ -32,77 +33,62 @@ const authenticateToken = async (req, res, next) => {
 // Get current user
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password'] }
-    });
-    res.json(user);
+    // Since we already have the user from the middleware
+    const userWithoutPassword = {
+      id: req.user.id,
+      username: req.user.username,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    };
+    
+    res.json(userWithoutPassword);
   } catch (error) {
+    console.error('Error fetching user:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Signup route
-// Signup route
 router.post('/signup', async (req, res) => {
   try {
-    console.log('Received signup request:', req.body);
-    
     const { username, name, email, password, role } = req.body;
     
-    // Validate input
-    if (!username || !name || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ 
-      where: { 
-        [sequelize.Op.or]: [
-          { email },
-          { username }
-        ]
-      }
-    });
-
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ 
-        error: 'User with this email or username already exists' 
-      });
+      return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Create new user
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       username,
       name,
       email,
-      password, // Password will be hashed by the model hook
+      password: hashedPassword,
       role: role || 'student'
     });
 
-    console.log('User created:', user.toJSON());
-
-    // Generate JWT token
     const token = jwt.sign(
       { id: user.id },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Send response
+    const userWithoutPassword = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+
     res.status(201).json({
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: userWithoutPassword
     });
-
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ error: 'An error occurred during signup', details: error.message });
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -111,15 +97,12 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const user = await User.findOne({ 
-      where: { email } 
-    });
-
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const isValidPassword = await user.comparePassword(password);
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid password' });
     }
@@ -130,15 +113,17 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    const userWithoutPassword = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+
     res.json({
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: userWithoutPassword
     });
   } catch (error) {
     console.error('Login error:', error);

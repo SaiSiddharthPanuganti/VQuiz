@@ -13,9 +13,11 @@ import {
   Collapse,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  TextField
 } from '@mui/material';
 import { motion } from 'framer-motion';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 function QuizDisplay({ quiz, onReset }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -25,6 +27,11 @@ function QuizDisplay({ quiz, onReset }) {
   const [score, setScore] = useState(null);
   const [incorrectAnswers, setIncorrectAnswers] = useState([]);
 
+  // Debug logging
+  console.log('Quiz data:', quiz);
+  console.log('Question type:', quiz?.questionType);
+  console.log('Current question:', quiz?.questions?.[currentQuestion]);
+
   const handleAnswerSelect = (answer) => {
     setSelectedAnswers({
       ...selectedAnswers,
@@ -33,152 +40,12 @@ function QuizDisplay({ quiz, onReset }) {
     setShowExplanation(false);
   };
 
-  const handleNext = () => {
-    setCurrentQuestion(prev => prev + 1);
-    setShowExplanation(false);
-  };
+  const renderQuestionInput = (question) => {
+    if (!question) return null;
 
-  const handlePrevious = () => {
-    setCurrentQuestion(prev => prev - 1);
-    setShowExplanation(false);
-  };
-
-  const handleSubmit = () => {
-    const totalQuestions = quiz.questions.length;
-    let correctCount = 0;
-    const wrongAnswers = [];
-
-    quiz.questions.forEach((question, index) => {
-      const userAnswer = selectedAnswers[index];
-      if (userAnswer === question.correctAnswer) {
-        correctCount++;
-      } else {
-        wrongAnswers.push({
-          questionNumber: index + 1,
-          question: question.question,
-          userAnswer,
-          correctAnswer: question.correctAnswer,
-          explanation: question.explanation
-        });
-      }
-    });
-
-    setScore(`${correctCount}/${totalQuestions}`);
-    setIncorrectAnswers(wrongAnswers);
-    setIsSubmitted(true);
-  };
-
-  const question = quiz.questions[currentQuestion];
-
-  return (
-    <Box 
-      sx={{ 
-        width: '100vw',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        padding: '20px'
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        style={{ 
-          width: '100%',
-          maxWidth: '800px',
-          margin: '0 auto'
-        }}
-      >
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 4, 
-            borderRadius: 2,
-            backgroundColor: 'background.paper',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}
-        >
-          {/* Quiz Header */}
-          <Typography variant="h4" gutterBottom>
-            {quiz.title}
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            Question {currentQuestion + 1} of {quiz.questions.length}
-          </Typography>
-          <Divider sx={{ my: 2 }} />
-
-          {/* Score Display */}
-          {isSubmitted && (
-            <>
-              <Alert 
-                severity="info" 
-                sx={{ mb: 3 }}
-              >
-                <Typography variant="h6">
-                  Final Score: {score}
-                </Typography>
-                {incorrectAnswers.length > 0 ? (
-                  <Typography>
-                    You got {quiz.questions.length - incorrectAnswers.length} questions correct and {incorrectAnswers.length} questions wrong.
-                  </Typography>
-                ) : (
-                  <Typography>
-                    Perfect score! You got all questions correct!
-                  </Typography>
-                )}
-              </Alert>
-
-              {incorrectAnswers.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Review Incorrect Answers:
-                  </Typography>
-                  <List>
-                    {incorrectAnswers.map((wrong, index) => (
-                      <ListItem 
-                        key={index}
-                        sx={{ 
-                          flexDirection: 'column', 
-                          alignItems: 'flex-start',
-                          bgcolor: 'background.default',
-                          borderRadius: 1,
-                          mb: 2,
-                          p: 2
-                        }}
-                      >
-                        <Typography variant="subtitle1" color="error" gutterBottom>
-                          Question {wrong.questionNumber}: {wrong.question}
-                        </Typography>
-                        <Typography color="text.secondary">
-                          Your Answer: {wrong.userAnswer}
-                        </Typography>
-                        <Typography color="success.main">
-                          Correct Answer: {wrong.correctAnswer}
-                        </Typography>
-                        <Typography sx={{ mt: 1 }}>
-                          Explanation: {wrong.explanation}
-                        </Typography>
-                      </ListItem>
-                    ))}
-                  </List>
-                </Box>
-              )}
-            </>
-          )}
-
-          {/* Question */}
-          <Typography variant="h6" gutterBottom>
-            {question.question}
-          </Typography>
-
-          {/* Options */}
+    switch (quiz.questionType) {
+      case 'multiple-choice':
+        return (
           <RadioGroup
             value={selectedAnswers[currentQuestion] || ''}
             onChange={(e) => handleAnswerSelect(e.target.value)}
@@ -191,6 +58,7 @@ function QuizDisplay({ quiz, onReset }) {
                 label={option}
                 disabled={isSubmitted}
                 sx={{
+                  my: 1,
                   ...(isSubmitted && option === question.correctAnswer && {
                     color: 'success.main',
                   }),
@@ -203,74 +71,210 @@ function QuizDisplay({ quiz, onReset }) {
               />
             ))}
           </RadioGroup>
+        );
 
-          {/* Explanation */}
-          <Collapse in={showExplanation || isSubmitted}>
-            <Alert severity="info" sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Explanation:
-              </Typography>
-              {question.explanation}
-            </Alert>
-          </Collapse>
+      case 'true-false':
+        return (
+          <RadioGroup
+            value={selectedAnswers[currentQuestion] || ''}
+            onChange={(e) => handleAnswerSelect(e.target.value)}
+          >
+            <FormControlLabel 
+              value="True" 
+              control={<Radio />} 
+              label="True"
+              sx={{
+                ...(isSubmitted && "True" === question.correctAnswer && {
+                  color: 'success.main',
+                }),
+              }}
+            />
+            <FormControlLabel 
+              value="False" 
+              control={<Radio />} 
+              label="False"
+              sx={{
+                ...(isSubmitted && "False" === question.correctAnswer && {
+                  color: 'success.main',
+                }),
+              }}
+            />
+          </RadioGroup>
+        );
 
-          {/* Navigation Buttons */}
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-            <Button
-              variant="outlined"
-              onClick={handlePrevious}
-              disabled={currentQuestion === 0}
-            >
-              Previous
-            </Button>
+      case 'fill-in-the-blanks':
+        return (
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Type your answer here"
+            value={selectedAnswers[currentQuestion] || ''}
+            onChange={(e) => handleAnswerSelect(e.target.value)}
+            disabled={isSubmitted}
+            error={isSubmitted && selectedAnswers[currentQuestion]?.toLowerCase().trim() !== question.correctAnswer?.toLowerCase().trim()}
+            helperText={isSubmitted && selectedAnswers[currentQuestion]?.toLowerCase().trim() !== question.correctAnswer?.toLowerCase().trim() ? 
+              `Correct answer: ${question.correctAnswer}` : ''}
+            sx={{ mt: 2 }}
+          />
+        );
 
-            <Box>
-              {!isSubmitted && (
-                <Button
-                  variant="outlined"
-                  onClick={() => setShowExplanation(!showExplanation)}
-                  sx={{ mr: 2 }}
-                >
-                  {showExplanation ? 'Hide' : 'Show'} Explanation
-                </Button>
-              )}
+      default:
+        console.log('Unsupported question type:', quiz.questionType);
+        return (
+          <Typography color="error">
+            Unsupported question type
+          </Typography>
+        );
+    }
+  };
 
-              {currentQuestion < quiz.questions.length - 1 ? (
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  disabled={!selectedAnswers[currentQuestion]}
-                >
-                  Next
-                </Button>
-              ) : (
-                !isSubmitted && (
-                  <Button
-                    variant="contained"
-                    onClick={handleSubmit}
-                    disabled={Object.keys(selectedAnswers).length !== quiz.questions.length}
-                  >
-                    Submit Quiz
-                  </Button>
-                )
-              )}
-            </Box>
-          </Box>
+  const handleSubmit = () => {
+    const totalQuestions = quiz.questions.length;
+    let correctCount = 0;
+    const wrongAnswers = [];
 
-          {/* Reset Button */}
-          {isSubmitted && (
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+    quiz.questions.forEach((question, index) => {
+      const userAnswer = selectedAnswers[index];
+      let isCorrect = false;
+
+      if (quiz.questionType === 'fill-in-the-blanks') {
+        isCorrect = userAnswer?.toLowerCase().trim() === question.correctAnswer?.toLowerCase().trim();
+      } else {
+        isCorrect = userAnswer === question.correctAnswer;
+      }
+
+      if (isCorrect) {
+        correctCount++;
+      } else {
+        wrongAnswers.push({
+          questionNumber: index + 1,
+          question: question.question,
+          userAnswer: userAnswer || 'No answer provided',
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation
+        });
+      }
+    });
+
+    setScore(`${correctCount}/${totalQuestions}`);
+    setIncorrectAnswers(wrongAnswers);
+    setIsSubmitted(true);
+  };
+
+  if (!quiz?.questions?.length) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography color="error">
+          Error: No questions available
+        </Typography>
+      </Box>
+    );
+  }
+
+  const question = quiz.questions[currentQuestion];
+
+  return (
+    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      <Paper sx={{ p: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          {quiz.title}
+        </Typography>
+
+        <Typography variant="subtitle1" gutterBottom>
+          Question {currentQuestion + 1} of {quiz.questions.length}
+        </Typography>
+
+        <Box sx={{ my: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            {question.question}
+          </Typography>
+          {renderQuestionInput(question)}
+        </Box>
+
+        {/* Show Explanation */}
+        <Collapse in={showExplanation || isSubmitted}>
+          <Alert severity="info" sx={{ mt: 2 }}>
+            {question.explanation}
+          </Alert>
+        </Collapse>
+
+        {/* Navigation */}
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+          <Button
+            variant="outlined"
+            onClick={() => setCurrentQuestion(prev => prev - 1)}
+            disabled={currentQuestion === 0}
+          >
+            Previous
+          </Button>
+
+          <Box>
+            {!isSubmitted && (
               <Button
                 variant="outlined"
+                onClick={() => setShowExplanation(!showExplanation)}
+                sx={{ mr: 2 }}
+              >
+                {showExplanation ? 'Hide' : 'Show'} Explanation
+              </Button>
+            )}
+
+            {currentQuestion < quiz.questions.length - 1 ? (
+              <Button
+                variant="contained"
+                onClick={() => setCurrentQuestion(prev => prev + 1)}
+                disabled={!selectedAnswers[currentQuestion]}
+              >
+                Next
+              </Button>
+            ) : (
+              !isSubmitted && (
+                <Button
+                  variant="contained"
+                  onClick={handleSubmit}
+                  disabled={Object.keys(selectedAnswers).length !== quiz.questions.length}
+                >
+                  Submit Quiz
+                </Button>
+              )
+            )}
+          </Box>
+        </Box>
+
+        {/* Score Display and Create Another Quiz Button */}
+        {isSubmitted && (
+          <Box sx={{ mt: 3 }}>
+            <Alert severity="info">
+              <Typography variant="h6">Score: {score}</Typography>
+              {incorrectAnswers.length > 0 && (
+                <List>
+                  {incorrectAnswers.map((wrong, index) => (
+                    <ListItem key={index}>
+                      <ListItemText
+                        primary={`Question ${wrong.questionNumber}: ${wrong.question}`}
+                        secondary={`Your answer: ${wrong.userAnswer} | Correct answer: ${wrong.correctAnswer}`}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Alert>
+
+            {/* Create Another Quiz Button */}
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={onReset}
+                startIcon={<RefreshIcon />}
+                sx={{ mt: 2 }}
               >
-                Create New Quiz
+                Create Another Quiz
               </Button>
             </Box>
-          )}
-        </Paper>
-      </motion.div>
+          </Box>
+        )}
+      </Paper>
     </Box>
   );
 }

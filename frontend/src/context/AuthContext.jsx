@@ -39,29 +39,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const signup = async (userData) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-
-      localStorage.setItem('token', data.token);
-      setCurrentUser(data.user);
-      
-      // Redirect based on role
-      navigate(data.user.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const login = async (email, password) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
@@ -80,10 +57,46 @@ export function AuthProvider({ children }) {
       const data = await response.json();
       localStorage.setItem('token', data.token);
       setCurrentUser(data.user);
-      navigate('/dashboard');
-
+      
+      // Redirect based on role
+      if (data.user.role === 'teacher') {
+        navigate('/teacher-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const signup = async (userData) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create account');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      setCurrentUser(data.user);
+      
+      // Redirect based on role
+      if (data.user.role === 'teacher') {
+        navigate('/teacher-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
       throw error;
     }
   };
@@ -96,8 +109,8 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
-    signup,
     login,
+    signup,
     logout,
     loading
   };

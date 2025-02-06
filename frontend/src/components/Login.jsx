@@ -37,7 +37,7 @@ function Login() {
     setError('');
 
     try {
-      await login(formData);
+      await login(formData.email, formData.password);
     } catch (err) {
       setError(err.message || 'Failed to login');
     } finally {

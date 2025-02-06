@@ -14,7 +14,7 @@ const sequelize = new Sequelize(
 const User = require('./User')(sequelize);
 const Quiz = require('./Quiz')(sequelize);
 
-// Define relationships
+// Define associations
 User.hasMany(Quiz);
 Quiz.belongsTo(User);
 

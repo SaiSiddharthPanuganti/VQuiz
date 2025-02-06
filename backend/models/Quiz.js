@@ -11,20 +11,21 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false
     },
-    questions: {
-      type: DataTypes.JSON,
-      allowNull: false
-    },
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'Users',
-        key: 'id'
-      }
-    },
     videoUrl: {
       type: DataTypes.STRING,
+      allowNull: false
+    },
+    totalQuestions: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    difficulty: {
+      type: DataTypes.ENUM('easy', 'medium', 'hard'),
+      allowNull: false,
+      defaultValue: 'medium'
+    },
+    questions: {
+      type: DataTypes.JSON,
       allowNull: false
     },
     score: {
@@ -32,18 +33,10 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: 0
     },
-    totalQuestions: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
     correctAnswers: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0
-    },
-    difficulty: {
-      type: DataTypes.ENUM('easy', 'medium', 'hard'),
-      allowNull: false
     },
     timeSpent: {
       type: DataTypes.INTEGER,

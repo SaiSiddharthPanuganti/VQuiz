@@ -15,7 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import { useProgress } from '../context/ProgressContext';
 
-function QuizForm({ onQuizGenerate }) {
+function QuizForm({ onSubmit }) {
   const [youtubeLink, setYoutubeLink] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,23 +27,58 @@ function QuizForm({ onQuizGenerate }) {
     difficulty: 'medium'
   });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Add YouTube URL validation regex
+  const youtubeUrlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})$/;
+
+  const validateForm = () => {
+    // YouTube link validation
     if (!youtubeLink.trim()) {
       setError('Please enter a YouTube video link');
+      return false;
+    }
+    
+    if (!youtubeUrlRegex.test(youtubeLink)) {
+      setError('Please enter a valid YouTube video URL');
+      return false;
+    }
+
+    // Number of questions validation
+    const numQuestions = parseInt(preferences.numberOfQuestions);
+    if (isNaN(numQuestions) || numQuestions < 1 || numQuestions > 20) {
+      setError('Number of questions must be between 1 and 20');
+      return false;
+    }
+
+    // Question type validation
+    const validQuestionTypes = ['multiple-choice', 'true-false', 'fill-in-the-blanks'];
+    if (!validQuestionTypes.includes(preferences.questionType)) {
+      setError('Invalid question type selected');
+      return false;
+    }
+
+    // Difficulty validation
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    if (!validDifficulties.includes(preferences.difficulty)) {
+      setError('Invalid difficulty level selected');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
     setError('');
-    startProgress('Generating quiz...');
+    startProgress(`Generating ${preferences.questionType} quiz...`);
 
     try {
-      await onQuizGenerate(youtubeLink, {
-        questionType: preferences.questionType,
-        numberOfQuestions: parseInt(preferences.numberOfQuestions),
-        difficulty: preferences.difficulty
-      });
+      await onSubmit(youtubeLink, preferences);
     } catch (err) {
       setError(err.message || 'Failed to generate quiz');
     } finally {
@@ -53,12 +88,23 @@ function QuizForm({ onQuizGenerate }) {
   };
 
   const handleNumberOfQuestionsChange = (e) => {
-    const value = parseInt(e.target.value);
-    // Ensure the number is between 1 and 20
-    if (value >= 1 && value <= 20) {
+    const value = e.target.value;
+    // Allow empty string for better UX during typing
+    if (value === '') {
       setPreferences({
         ...preferences,
         numberOfQuestions: value
+      });
+      return;
+    }
+
+    const numValue = parseInt(value);
+    if (!isNaN(numValue)) {
+      // Clamp the value between 1 and 20
+      const clampedValue = Math.min(Math.max(numValue, 1), 20);
+      setPreferences({
+        ...preferences,
+        numberOfQuestions: clampedValue
       });
     }
   };
@@ -144,22 +190,21 @@ function QuizForm({ onQuizGenerate }) {
                   questionType: e.target.value
                 })}
               >
-                <MenuItem value="multiple-choice">Multiple Choice</MenuItem>
-                <MenuItem value="true-false">True/False</MenuItem>
-                <MenuItem value="open-ended">Open Ended</MenuItem>
+                <MenuItem value="multiple-choice">Multiple Choice Questions</MenuItem>
+                <MenuItem value="true-false">True/False Questions</MenuItem>
+                <MenuItem value="fill-in-the-blanks">Fill In The Blanks</MenuItem>
               </Select>
             </FormControl>
 
             <TextField
               fullWidth
-              type="number"
               label="Number of Questions"
               value={preferences.numberOfQuestions}
               onChange={handleNumberOfQuestionsChange}
-              inputProps={{
-                min: 1,
-                max: 20,
-                step: 1
+              type="number"
+              InputProps={{
+                inputMode: 'numeric',
+                pattern: '[0-9]*'
               }}
               sx={{ mb: 3 }}
               helperText="Enter a number between 1 and 20"
@@ -211,4 +256,4 @@ function QuizForm({ onQuizGenerate }) {
   );
 }
 
-export default QuizForm; 
+export default QuizForm;
