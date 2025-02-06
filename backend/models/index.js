@@ -1,28 +1,25 @@
-const Quiz = require('./Quiz');
-const Question = require('./Question');
-const User = require('./User');
+const { Sequelize } = require('sequelize');
+const config = require('../config/config.json');
 
-// Define associations
-Quiz.hasMany(Question, {
-  foreignKey: 'quizId',
-  onDelete: 'CASCADE'
-});
+const sequelize = new Sequelize(
+  config.development.database,
+  config.development.username,
+  config.development.password,
+  {
+    host: config.development.host,
+    dialect: 'mysql'
+  }
+);
 
-Question.belongsTo(Quiz, {
-  foreignKey: 'quizId'
-});
+const User = require('./User')(sequelize);
+const Quiz = require('./Quiz')(sequelize);
 
-User.hasMany(Quiz, {
-  foreignKey: 'userId',
-  onDelete: 'CASCADE'
-});
-
-Quiz.belongsTo(User, {
-  foreignKey: 'userId'
-});
+// Define relationships
+User.hasMany(Quiz);
+Quiz.belongsTo(User);
 
 module.exports = {
-  Quiz,
-  Question,
-  User
+  sequelize,
+  User,
+  Quiz
 }; 

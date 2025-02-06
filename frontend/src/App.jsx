@@ -11,28 +11,9 @@ import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import Navigation from './components/Navigation';
 import Statistics from './components/Statistics';
-
-// Protected Route component
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return children;
-};
-
-// Public Route component - redirects to dashboard if already authenticated
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  
-  return children;
-};
+import Welcome from './components/Welcome';
+import TeacherDashboard from './components/TeacherDashboard';
+import PrivateRoute from './components/PrivateRoute';
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
@@ -66,39 +47,34 @@ function AppContent() {
         }}
       >
         <Routes>
-          <Route
-            path="/login"
+          <Route path="/" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route 
+            path="/dashboard" 
             element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <PublicRoute>
-                <Signup />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Dashboard />
-              </ProtectedRoute>
-            }
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/teacher-dashboard" 
+            element={
+              <PrivateRoute>
+                <TeacherDashboard />
+              </PrivateRoute>
+            } 
           />
           <Route
             path="/statistics"
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Statistics />
-              </ProtectedRoute>
+              </PrivateRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Box>
     </Box>

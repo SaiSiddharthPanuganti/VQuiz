@@ -41,33 +41,23 @@ export function AuthProvider({ children }) {
 
   const signup = async (userData) => {
     try {
-      console.log('Signup data being sent:', userData); // Debug log
-
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          username: userData.username,
-          name: userData.name,
-          email: userData.email,
-          password: userData.password
-        })
+        body: JSON.stringify(userData)
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create account');
-      }
-
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
       localStorage.setItem('token', data.token);
       setCurrentUser(data.user);
-      navigate('/dashboard');
-
+      
+      // Redirect based on role
+      navigate(data.user.role === 'teacher' ? '/teacher-dashboard' : '/dashboard');
     } catch (error) {
-      console.error('Signup error:', error);
       throw error;
     }
   };

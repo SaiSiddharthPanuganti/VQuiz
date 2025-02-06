@@ -10,17 +10,21 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 
 function Signup() {
+  const location = useLocation();
+  const role = new URLSearchParams(location.search).get('role') || 'student';
+  
   const [formData, setFormData] = useState({
     username: '',
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: role
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,7 +120,7 @@ function Signup() {
             gutterBottom
             sx={{ color: 'primary.main', fontWeight: 500 }}
           >
-            Create Account
+            Create {role === 'teacher' ? 'Teacher' : 'Student'} Account
           </Typography>
             
           {error && (
